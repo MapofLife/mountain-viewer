@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Map of Life -- Mountains</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
+    
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+
+
+    <style>
+      html, body, #map {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      
+    button:hover {
+    text-decoration: none;
+    position: relative;
+    left: 2px;
+}
+button {
+        display: block;
+        margin: 20px 20px 0 0;
+        width: 100px;
+        height:29px;
+        -webkit-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        -moz-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        z-index: 5;
+        background: white;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        -ms-border-radius: 4px;
+        -o-border-radius: 4px;
+        border-radius: 4px;
+        border: 1px solid #999999;
+        z-index:5;
+        font:normal 14px Arial;
+        color:#999999;
+}
+button:active {
+    text-decoration: none;
+    background-color:#9c9b9b;
+}
+button.selected {
+    text-decoration: none;
+    background-color:#9c9b9b;
+    color:#111111;
+    border-color: #DD1122;
+      
+}
+.ui-autocomplete {
+        max-height: 500px;
+        max-width: 600px;
+        overflow-y: auto;
+        /* prevent horizontal scrollbar */
+        overflow-x: hidden;
+        /* add padding to account for vertical scrollbar */
+        pointer-events: auto;
+
+        font-size:9pt;
+        line-height:1;
+        font-weight:400;
+    }
+.ui-autocomplete .ac-item {
+    text-indent:-0.5em;
+    padding-left:1.1em;
+}
+
+      #layer_selector {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 0;
+      }
+      .list {
+        position: absolute;
+        top: 120px;
+        right: 20px;
+        padding: 0;
+      }
+      #layer_selector ul {
+        padding: 0; margin: 0;
+        list-style-type: none;
+      }
+      #layer_selector li {
+        border-bottom: 1px solid #999999;
+        padding: 15px 30px;
+        font-family: "Helvetica",Arial;
+        font-size: 13px;
+        color: #444;
+        cursor: auto;
+      }
+      #layer_selector li:hover {
+        background-color: #F0F0F0;
+        cursor: pointer;
+      }
+      #layer_selector li.selected {
+        background-color: #EEE;
+      }
+      #logo {
+    padding: 5px;
+    z-index: 0;
+    color: rgb(68, 68, 68);
+    cursor:pointer;
+    cursor:hand
+}
+      div.searchbox {
+        position: absolute;
+        display:block;
+        top: 0px;
+        left: 100px;
+        margin: 20px 20px 0 0;
+        width: 242px;
+        height:29px;
+        -webkit-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        -moz-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        z-index: 5;
+        background: white;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        -ms-border-radius: 4px;
+        -o-border-radius: 4px;
+        border-radius: 4px;
+        border: 1px solid #999999;
+        z-index:5;
+      }
+
+      div.searchbox span.loader {
+        position: absolute;
+        display:none;
+        top:3px;
+        left:3px;
+        width:22px;
+        height:22px;
+        background: url('../img/loader.gif') no-repeat center center white;
+        z-index:5;
+      }
+    
+      div.searchbox input.text {
+        position: absolute;
+        top:6px;
+        left:30px;
+        width:203px;
+        padding:0;
+        margin:0;
+        line-height:17px;
+        border:none;
+        background:none;
+        border-bottom:1px dotted #CCCCCC;
+        font:normal 14px Arial;
+        color:#999999;
+        text-align:left;
+        z-index:2;
+      }
+    
+      div.searchbox input.text:focus {
+        outline:none;
+        border-color:#999999;
+        color:#666666;
+      }
+    
+      div.searchbox input.submit {
+        position: absolute;
+        left:8px;
+        top:8px;
+        width:12px;
+        height:12px;
+        text-indent: -9999px;
+        font-size: 0;
+        line-height: 0;
+        /*text-transform: uppercase;*/
+        border:none;
+        background: url('http://libs.cartocdn.com/cartodb.js/v3/themes/img/other.png') no-repeat -56px 0;
+        z-index:1;
+      }
+    
+      div.searchbox input.submit:hover {
+        cursor:pointer;
+      }
+
+    </style>
+    <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/themes/css/cartodb.css" />
+    <script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <!--[if lte IE 8]>
+        <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/themes/css/cartodb.ie.css" />
+    <![endif]-->
+    <script src="http://libs.cartocdn.com/cartodb.js/v3/cartodb.uncompressed.js"></script>
+    <script type="infowindow/html" id="infowindow_template">
+      <span> custom </span>
+      <div class="cartodb-popup">
+        <a href="#close" class="cartodb-popup-close-button close">x</a>
+
+         <div class="cartodb-popup-content-wrapper">
+           <div class="cartodb-popup-content">
+             <img style="width: 100%" src="http://rambo.webcindario.com/images/18447755.jpg"></src>
+             <!-- content.data contains the field info -->
+             <h4>{{content.data.name}}</h4>
+           </div>
+         </div>
+         <div class="cartodb-popup-tip-container"></div>
+      </div>
+    </script>
+  </head>
+    
+  <body>
+    <div id="map"></div>
+    <div id="layer_selector" class="cartodb_infobox">
+      <button data-table="mountain_polygons_broadscale" data-vizurl="http://mol.cartodb.com/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json" class="selected">Broadscale</button>
+      <button data-table="mountains" data-vizurl="http://mol.cartodb.com/api/v2/viz/1152a44a-4321-11e3-9305-6805ca06688a/viz.json">Finescale</button>
+    </div>
+    <input type="submit" class="list">List Species</input>
+    <div class="searchbox">
+        <input type="text" class="text" value="">
+        <input type="submit" class="submit" value="">
+    </div>
+    <div class="list_results"></div>
+    <!-- include cartodb.js library -->
+    <script>
+     var map, vis, layer;
+        
+        
+      String.prototype.format = function(i, safe, arg) {
+          function format() {
+              var str = this, 
+                  len = arguments.length+1;
+              
+              for (i=0; i < len; arg = arguments[i++]) {
+                  safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
+                  str = str.replace(RegExp('\\{'+(i-1)+'\\}', 'g'), safe);
+              }
+              return str;
+          }
+          format.native = String.prototype.format;
+          return format;
+      }();
+  
+      
+      function search(val) {
+          var thelayer;
+          $('.searchbox .text').autocomplete("close");
+          $.getJSON(
+              "http://d3dvrpov25vfw0.cloudfront.net/api/v1/sql?q=" +
+              "SELECT ST_YMIN(ST_EXTENT(the_geom)) as miny, "+
+                "ST_XMIN(ST_EXTENT(the_geom)) as minx, " +
+                "ST_YMAX(ST_EXTENT(the_geom)) as maxy, " +
+                "ST_XMAX(ST_EXTENT(the_geom)) as maxx " +
+              " FROM {0} where name = '{1}'"
+                .format($('button.selected').data('table'),val),
+                function(response) {
+                  var minx = -180, maxx = 180, miny = -80, maxy = 80;
+                  if(response.rows[0].miny != null && 
+                     response.rows[0].minx != null && 
+                     response.rows[0].maxx != null && 
+                     response.rows[0].maxy != null) {
+                     if((360-(Math.abs(response.rows[0].maxx)+Math.abs(response.rows[0].minx)))<4) {
+                         minx = -181; 
+                         maxx=-179;
+                     } else {
+                         minx = response.rows[0].minx;
+                         maxx =  response.rows[0].maxx;
+                     }
+                     miny = response.rows[0].miny;
+                     maxy =  response.rows[0].maxy;
+                     if(val=='Russia') {
+                         minx = 83;
+                         maxx = 182;
+                     }
+                      map.fitBounds(
+                          new google.maps.LatLngBounds(
+                              new google.maps.LatLng(miny,minx),
+                              new google.maps.LatLng(maxy,maxx)
+                          )
+                  );
+                  }
+              }
+          );
+             if(lay.length != undefined) {
+                    thelayer=lay[lay.length-1] // or whatever you want
+                } else {
+                    thelayer=lay
+                
+                }
+           
+          thelayer.setQuery(
+             "SELECT *, CASE WHEN name = '{0}' THEN true ELSE false END as selected FROM {1} c2234".format(val,$('button.selected').data('table'))
+          )
+      }
+      
+      
+        
+      // create layer selector
+      function createSelector() {
+        
+        var $options = $('#layer_selector button');
+        $options.click(function(e) {
+
+          // get the area of the selected layer
+          var $button = $(e.target),
+              $buttons = $('button'),
+              viz_url= $button.data('vizurl'),
+              table = $button.data('table');
+          $('.cartodb-infowindow').remove();
+          $('.searchbox .text').val('');
+          map.overlayMapTypes.forEach(
+              function(mt,i) {
+                  map.overlayMapTypes.removeAt(i);
+              }
+          )
+          cartodb.createLayer(map, viz_url, {cartodb_logo:false, query: 'select *, false as selected from {0}'.format(table)})
+          .on('done', function(layer) {
+             lay = layer;
+             $('.cartodb-logo').remove();
+             $('#cartodb-gmaps-attribution').remove();
+            map.overlayMapTypes.setAt(0, layer);
+             });
+          // deselect all and select the clicked one
+          $buttons.removeClass('selected');
+          $button.addClass('selected');
+
+        });
+      }
+      
+      function initAutocomplete() {
+           $.ui.autocomplete.prototype._renderItem = function (ul, item) {
+
+                item.label = item.label.replace(
+                    new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
+                       $.ui.autocomplete.escapeRegex(this.term) +
+                       ")(?![^<>]*>)(?![^&;]+;)", "gi"), 
+                    "<strong>$1</strong>"
+                );
+                return $("<li></li>")
+                    .data("item.autocomplete", item)
+                    .append("<a>" + item.label + "</a>")
+                    .appendTo(ul);
+            };
+            
+       
+            
+            $('.searchbox .text').autocomplete(
+                    {
+                        minLength: 1, 
+                        source: function(request, response) {
+                            $.getJSON(
+                                "http://d3dvrpov25vfw0.cloudfront.net/api/v1/sql?"+
+                                "q=SELECT DISTINCT name FROM " +
+                                "{0} WHERE ".format($('button.selected').data('table')) +
+                                " name~*'\\m{0}' order by name asc limit 3000".format(
+                                         $.trim(request.term)
+                                                .replace(/ /g, ' ')
+                                ),
+                                function (json) {
+                                    var names = [];
+                                    _.each (
+                                        json.rows,
+                                        function(row) {
+                                            var name;
+                                            if(row.name != undefined){
+                                                name = row.name;
+                                                names.push(name);
+                                           }
+                                       }
+                                    );
+                                    response(names);
+                                 },
+                                 'json'
+                            );
+                        },
+                    select: function(event, ui) {
+                       search(ui.item.value);
+                       $(this).autocomplete("close");
+                    },
+                    close: function(event,ui) {
+                    
+                    },
+                    search: function(event, ui) {
+                        
+                    },
+                    open: function(event, ui) {
+                        
+                    }
+                        
+                  }).keyup(
+                        function(event, ui) {
+                            if (event.keyCode === 13 && $('.ui-menu').is(':visible')) {
+                               search($($('.ui-menu-item')[0]).text());
+                               $(this).autocomplete("close");
+                            }
+                        }
+                    ).focus(
+                        function(event) {
+                             if($('.ui-menu').not(':visible')) {
+                                $(this).autocomplete("search");
+                            }
+                        }
+                    ).blur(
+                        function(event) {
+                            
+                                $(this).autocomplete("close");
+                            
+                        }
+                    ).click(
+                        function(event) {
+                             if($('.ui-menu').not(':visible')) {
+                                $(this).autocomplete("search");
+                            }
+                        }
+                    );
+      }
+      
+      function main() {
+        //map = new google.maps.Map(document.getElementById('map'),  mapOptions);
+        cartodb.createVis(
+            'map',
+            'http://mol.cartodb.com/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json',
+            {cartodb_logo:false, query: 'SELECT *, false as selected FROM mountain_polygons_broadscale c123 '}
+        ).done(
+            function(viz,layer) {
+                var logo = $('<DIV id="logo">by Map of Life, 2013</div>');
+                $(logo).click(
+                    function() {
+                        window.open('http://www.mappinglife.org','_mol');
+                    }
+                );
+                vis = viz;
+                lay = layer;
+                map = vis.getNativeMap();
+                map.setOptions(
+                    {mapTypeId: google.maps.MapTypeId.TERRAIN}
+                );
+                createSelector();
+                
+                map.controls[google.maps.ControlPosition.TOP_RIGHT].push(logo[0]);
+                $('.cartodb-logo').remove();
+                $('#cartodb-gmaps-attribution').remove();
+                
+                initAutocomplete();
+            }
+        );
+        
+        $('.list').click(
+            function(event) {
+                var list_sql = "SELECT DISTINCT binomial FROM "+
+                " iucn_amphibians i, {0} p WHERE p.gmba_id = '{1}' AND ST_DWithin(p.the_geom_webmercator,i.the_geom_webmercator,0) ORDER BY binomial asc";
+                $.getJSON(
+                    'http://mol.cartodb.com/api/v2/sql?q={0}'.format(
+                        list_sql.format(
+                             $('button.selected').data('table'),
+                             lay[lay.length-1].infowindow.attributes.content.data.gmba_id)),
+                    function(json) {
+                        alert(json)
+                    }
+                )
+                
+            }
+        )
+            //init autocomplete
+        $(document).keyup(function(e) {
+            var thelayer;
+            if (e.keyCode == 27) { // Esc
+                if(lay.length != undefined) {
+                    thelayer=lay[lay.length-1] // or whatever you want
+                } else {
+                    thelayer=lay
+                
+                }
+                thelayer.setQuery('SELECT *, false as selected FROM {0} c2234'.format($('button.selected').data('table')));
+            }
+        });
+        
+        $('.searchbox .submit').click(
+            function(event) {
+                search($('.searchbox .text').val());
+            }
+        )
+    }
+        
+      window.onload = main;
+
+    </script>
+
+  </body>
+</html>
