@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
     <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
     <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/themes/css/cartodb.css" />
 
 
     <style>
@@ -19,14 +20,24 @@
       }
       
     button:hover {
-    text-decoration: none;
-    position: relative;
-    left: 2px;
-}
+        text-decoration: none;
+        position: relative;
+        left: 2px;
+    }
+    .sci {
+        font-size:10pt;
+        padding:2px;
+        font-style: italic;
+    }
+    .eng {
+        font-size: 10pt;
+        font-style: normal;
+    }
 button {
         display: block;
-        margin: 20px 20px 0 0;
-        width: 100px;
+        margin: 20px 20px 3px 3px;
+        min-width: 100px;
+        max-width: 180px;
         height:29px;
         -webkit-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
         -moz-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
@@ -54,6 +65,10 @@ button.selected {
     border-color: #DD1122;
       
 }
+.cartodb-popup-content-wrapper button {
+    margin:2px;
+    width:153px;
+}
 .ui-autocomplete {
         max-height: 500px;
         max-width: 600px;
@@ -78,11 +93,39 @@ button.selected {
         right: 20px;
         padding: 0;
       }
-      .list {
+      .list_controller {
         position: absolute;
         top: 120px;
         right: 20px;
         padding: 0;
+      }
+      .list_header {
+          font-weight:600;
+      }
+      
+      .list_results {
+        position: absolute;
+        display:none;
+        bottom: 25px;
+        left: 20px;
+        padding:5px;
+        max-height:300px;
+        overflow-y: auto;
+        margin: 20px 20px 0 0;
+        width: 312px;
+      
+        -webkit-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        -moz-box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        box-shadow: rgba(0, 0, 0, 0.2) 0 0 4px 2px;
+        z-index: 5;
+        background: white;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        -ms-border-radius: 4px;
+        -o-border-radius: 4px;
+        border-radius: 4px;
+        border: 1px solid #999999;
+        z-index:5;
       }
       #layer_selector ul {
         padding: 0; margin: 0;
@@ -104,12 +147,12 @@ button.selected {
         background-color: #EEE;
       }
       #logo {
-    padding: 5px;
-    z-index: 0;
-    color: rgb(68, 68, 68);
-    cursor:pointer;
-    cursor:hand
-}
+            padding: 5px;
+            z-index: 0;
+            color: rgb(68, 68, 68);
+            cursor:pointer;
+            cursor:hand
+        }
       div.searchbox {
         position: absolute;
         display:block;
@@ -186,42 +229,35 @@ button.selected {
       }
 
     </style>
-    <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/themes/css/cartodb.css" />
     <script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
     <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
     <!--[if lte IE 8]>
         <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/themes/css/cartodb.ie.css" />
     <![endif]-->
     <script src="http://libs.cartocdn.com/cartodb.js/v3/cartodb.uncompressed.js"></script>
-    <script type="infowindow/html" id="infowindow_template">
-      <span> custom </span>
-      <div class="cartodb-popup">
-        <a href="#close" class="cartodb-popup-close-button close">x</a>
 
-         <div class="cartodb-popup-content-wrapper">
-           <div class="cartodb-popup-content">
-             <img style="width: 100%" src="http://rambo.webcindario.com/images/18447755.jpg"></src>
-             <!-- content.data contains the field info -->
-             <h4>{{content.data.name}}</h4>
-           </div>
-         </div>
-         <div class="cartodb-popup-tip-container"></div>
-      </div>
-    </script>
   </head>
     
   <body>
     <div id="map"></div>
     <div id="layer_selector" class="cartodb_infobox">
-      <button data-table="mountain_polygons_broadscale" data-vizurl="http://mol.cartodb.com/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json" class="selected">Broadscale</button>
-      <button data-table="mountains" data-vizurl="http://mol.cartodb.com/api/v2/viz/1152a44a-4321-11e3-9305-6805ca06688a/viz.json">Finescale</button>
+      <button 
+        data-table="mountain_polygons_broadscale" 
+        data-vizurl="http://d3dvrpov25vfw0.cloudfront.net/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json" 
+        class="selected">
+        Broadscale
+      </button>
+      <button 
+        data-table="mountains" 
+        data-vizurl="http://d3dvrpov25vfw0.cloudfront.net/api/v2/viz/1152a44a-4321-11e3-9305-6805ca06688a/viz.json">
+        Finescale
+      </button>
     </div>
-    <input type="submit" class="list">List Species</input>
+    <div class="list_results cartodb_infobox"></div>
     <div class="searchbox">
         <input type="text" class="text" value="">
         <input type="submit" class="submit" value="">
     </div>
-    <div class="list_results"></div>
     <!-- include cartodb.js library -->
     <script>
      var map, vis, layer;
@@ -416,11 +452,77 @@ button.selected {
                     );
       }
       
+          function getSpeciesList(gmba_id, name, group) {
+            var list_sql = "" +
+                "SELECT " +
+                    "binomial, " +
+                    "split_part(t.common_names_eng,',',1) as common " +
+                "FROM " +
+                    "(SELECT " +
+                        "DISTINCT binomial " +
+                    "FROM "+
+                        "iucn_{0} i, {1} p " +
+                    "WHERE " +
+                        "p.gmba_id = '{2}' " +
+                        "AND " +
+                        "ST_DWithin(" +
+                            "p.the_geom_webmercator,i.the_geom_webmercator,0)" +
+                    ") s " +
+                "LEFT JOIN " +
+                    "taxonomy t ON s.binomial = t.scientificname "
+                "ORDER BY binomial asc";
+            
+            $('.list_results').empty();
+            $('.list_results').show();
+            $('.list_results').append(
+                $('<div>Please wait while we search for {0} in the {1} region.</div>'.format(group,name))
+            );
+           $('.cartodb-tiles-loader').css("opacity",1)
+            try {
+                $.getJSON(
+                    'http://d3dvrpov25vfw0.cloudfront.net/api/v2/sql?q={0}'.format(
+                        list_sql.format(
+                             group,
+                             $('button.selected').data('table'),
+                            gmba_id)),
+                    function(json) {
+                        $('.cartodb-tiles-loader').css("opacity",0)
+                        $('.list_results').empty();
+                         $('.list_results').append(
+                            $('<div class="list_header">{0} {1} expected in the {2} region.</div>'
+                                .format(json.total_rows, group, name))
+                         );
+                        _.each(
+                            json.rows,
+                            function(row) {
+                                var html = '' +
+                                    '<div>' +
+                                        '<span class="eng">{0}</span>' +
+                                        '<span class="sci">{1}</span>' +
+                                    '</div>';
+                                $('.list_results').append(
+                                    $(html.format(
+                                            row.common,row.binomial
+                                         )
+                                     )
+                                 )
+                            }
+                        )
+                    }
+                )
+            } catch(e)
+            
+                {   $('.cartodb-tiles-loader').css("opacity",1);
+                     $('.list_results').empty();
+                      $('.list_results').hide();
+                    console.log("Couldn't get a list. Sorry!")}                
+        }
+  
       function main() {
         //map = new google.maps.Map(document.getElementById('map'),  mapOptions);
         cartodb.createVis(
             'map',
-            'http://mol.cartodb.com/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json',
+            'http://d3dvrpov25vfw0.cloudfront.net/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json',
             {cartodb_logo:false, query: 'SELECT *, false as selected FROM mountain_polygons_broadscale c123 '}
         ).done(
             function(viz,layer) {
@@ -441,27 +543,10 @@ button.selected {
                 map.controls[google.maps.ControlPosition.TOP_RIGHT].push(logo[0]);
                 $('.cartodb-logo').remove();
                 $('#cartodb-gmaps-attribution').remove();
-                
+         
                 initAutocomplete();
             }
         );
-        
-        $('.list').click(
-            function(event) {
-                var list_sql = "SELECT DISTINCT binomial FROM "+
-                " iucn_amphibians i, {0} p WHERE p.gmba_id = '{1}' AND ST_DWithin(p.the_geom_webmercator,i.the_geom_webmercator,0) ORDER BY binomial asc";
-                $.getJSON(
-                    'http://mol.cartodb.com/api/v2/sql?q={0}'.format(
-                        list_sql.format(
-                             $('button.selected').data('table'),
-                             lay[lay.length-1].infowindow.attributes.content.data.gmba_id)),
-                    function(json) {
-                        alert(json)
-                    }
-                )
-                
-            }
-        )
             //init autocomplete
         $(document).keyup(function(e) {
             var thelayer;
