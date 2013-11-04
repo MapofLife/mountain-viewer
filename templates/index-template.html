@@ -259,114 +259,133 @@ button.selected {
         <input type="submit" class="submit" value="">
     </div>
     <!-- include cartodb.js library -->
-    <script>
-     var map, vis, layer;
+    <script type="text/javascript">
+        var map, vis, layer;
         
-        
-      String.prototype.format = function(i, safe, arg) {
-          function format() {
-              var str = this, 
-                  len = arguments.length+1;
+        //A convenience string method.
+        String.prototype.format = function(i, safe, arg) {
+            function format() {
+                var str = this, 
+                    len = arguments.length+1;
               
-              for (i=0; i < len; arg = arguments[i++]) {
-                  safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
-                  str = str.replace(RegExp('\\{'+(i-1)+'\\}', 'g'), safe);
-              }
-              return str;
-          }
-          format.native = String.prototype.format;
-          return format;
-      }();
-  
-      
-      function search(val) {
-          var thelayer;
-          $('.searchbox .text').autocomplete("close");
-          $.getJSON(
-              "http://d3dvrpov25vfw0.cloudfront.net/api/v1/sql?q=" +
-              "SELECT ST_YMIN(ST_EXTENT(the_geom)) as miny, "+
+                for (i=0; i < len; arg = arguments[i++]) {
+                    safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
+                    str = str.replace(RegExp('\\{'+(i-1)+'\\}', 'g'), safe);
+                }
+                return str;
+            }
+            format.native = String.prototype.format;
+            return format;
+        }();
+        //Search for a region and zoom to it.
+        function search(val) {
+            var thelayer, 
+                sql = "" +
+                    "SELECT *, " +
+                        "CASE WHEN name = '{0}' THEN " +
+                            "true " +
+                        "ELSE " + 
+                            "false " +
+                        "END as selected " +
+                    "FROM {1} c2234";
+            
+            $('.searchbox .text').autocomplete("close");
+            $.getJSON(
+                "http://d3dvrpov25vfw0.cloudfront.net/api/v1/sql?q=" +
+                "SELECT ST_YMIN(ST_EXTENT(the_geom)) as miny, "+
                 "ST_XMIN(ST_EXTENT(the_geom)) as minx, " +
                 "ST_YMAX(ST_EXTENT(the_geom)) as maxy, " +
                 "ST_XMAX(ST_EXTENT(the_geom)) as maxx " +
-              " FROM {0} where name = '{1}'"
-                .format($('button.selected').data('table'),val),
+                " FROM {0} where name = '{1}'"
+                    .format($('button.selected').data('table'),val),
                 function(response) {
-                  var minx = -180, maxx = 180, miny = -80, maxy = 80;
-                  if(response.rows[0].miny != null && 
-                     response.rows[0].minx != null && 
-                     response.rows[0].maxx != null && 
-                     response.rows[0].maxy != null) {
-                     if((360-(Math.abs(response.rows[0].maxx)+Math.abs(response.rows[0].minx)))<4) {
-                         minx = -181; 
-                         maxx=-179;
-                     } else {
-                         minx = response.rows[0].minx;
-                         maxx =  response.rows[0].maxx;
-                     }
-                     miny = response.rows[0].miny;
-                     maxy =  response.rows[0].maxy;
-                     if(val=='Russia') {
-                         minx = 83;
-                         maxx = 182;
-                     }
-                      map.fitBounds(
-                          new google.maps.LatLngBounds(
-                              new google.maps.LatLng(miny,minx),
-                              new google.maps.LatLng(maxy,maxx)
-                          )
-                  );
-                  }
-              }
-          );
-             if(lay.length != undefined) {
-                    thelayer=lay[lay.length-1] // or whatever you want
-                } else {
-                    thelayer=lay
-                
+                    var minx = -180,
+                        maxx = 180,
+                        miny = -80 
+                        maxy = 80;
+                    if(response.rows[0].miny != null && 
+                        response.rows[0].minx != null && 
+                        response.rows[0].maxx != null && 
+                        response.rows[0].maxy != null) {
+                        if((360-(Math.abs(
+                            response.rows[0].maxx)+
+                            Math.abs(response.rows[0].minx)))<4) {
+                            minx = -181; 
+                            maxx=-179;
+                        } else {
+                            minx = response.rows[0].minx;
+                            maxx =  response.rows[0].maxx;
+                        }
+                        miny = response.rows[0].miny;
+                        maxy =  response.rows[0].maxy;
+                        if(val=='Russia') {
+                            minx = 83;
+                            maxx = 182;
+                        }
+                        map.fitBounds(
+                            new google.maps.LatLngBounds(
+                                new google.maps.LatLng(miny,minx),
+                                new google.maps.LatLng(maxy,maxx)
+                            )
+                        );
+                    }
                 }
-           
-          thelayer.setQuery(
-             "SELECT *, CASE WHEN name = '{0}' THEN true ELSE false END as selected FROM {1} c2234".format(val,$('button.selected').data('table'))
-          )
-      }
-      
-      
+            );
+            if(lay.length != undefined) {
+                thelayer=lay[lay.length-1] // or whatever you want
+            } else {
+                thelayer=lay
+            }
+            thelayer.setQuery(
+                sql.format(val,$('button.selected').data('table'))
+            );
+        }
+    
+        // create layer selector
+        function createSelector() {
+            var $options = $('#layer_selector button');
+            $options.click(
+                function(e) {
         
-      // create layer selector
-      function createSelector() {
-        
-        var $options = $('#layer_selector button');
-        $options.click(function(e) {
-
-          // get the area of the selected layer
-          var $button = $(e.target),
-              $buttons = $('button'),
-              viz_url= $button.data('vizurl'),
-              table = $button.data('table');
-          $('.cartodb-infowindow').remove();
-          $('.searchbox .text').val('');
-          map.overlayMapTypes.forEach(
-              function(mt,i) {
-                  map.overlayMapTypes.removeAt(i);
-              }
-          )
-          cartodb.createLayer(map, viz_url, {cartodb_logo:false, query: 'select *, false as selected from {0}'.format(table)})
-          .on('done', function(layer) {
-             lay = layer;
-             $('.cartodb-logo').remove();
-             $('#cartodb-gmaps-attribution').remove();
-            map.overlayMapTypes.setAt(0, layer);
-             });
-          // deselect all and select the clicked one
-          $buttons.removeClass('selected');
-          $button.addClass('selected');
-
-        });
-      }
-      
-      function initAutocomplete() {
+              // get the area of the selected layer
+                    var $button = $(e.target),
+                        $buttons = $('button'),
+                        viz_url= $button.data('vizurl'),
+                        table = $button.data('table');
+                    $('.cartodb-infowindow').remove();
+                    $('.searchbox .text').val('');
+                    map.overlayMapTypes.forEach(
+                        function(mt,i) {
+                            map.overlayMapTypes.removeAt(i);
+                        }
+                    )
+                    clearList();
+                    cartodb.createLayer(
+                        map,
+                        viz_url,
+                        {
+                            cartodb_logo:false,
+                            query: 'select *, false as selected from {0}'
+                                .format(table)
+                        }
+                    ).on(
+                        'done',
+                        function(layer) {
+                            lay = layer;
+                            $('.cartodb-logo').remove();
+                            $('#cartodb-gmaps-attribution').remove();
+                            map.overlayMapTypes.setAt(0, layer);
+                        }
+                    );
+                    // deselect all and select the clicked one
+                    $buttons.removeClass('selected');
+                    $button.addClass('selected');
+                }
+            );
+        }
+        function initAutocomplete() {
            $.ui.autocomplete.prototype._renderItem = function (ul, item) {
-
+    
                 item.label = item.label.replace(
                     new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
                        $.ui.autocomplete.escapeRegex(this.term) +
@@ -388,8 +407,10 @@ button.selected {
                             $.getJSON(
                                 "http://d3dvrpov25vfw0.cloudfront.net/api/v1/sql?"+
                                 "q=SELECT DISTINCT name FROM " +
-                                "{0} WHERE ".format($('button.selected').data('table')) +
-                                " name~*'\\m{0}' order by name asc limit 3000".format(
+                                "{0} WHERE "
+                                    .format($('button.selected').data('table')) +
+                                " name~*'\\m{0}' order by name asc limit 3000"
+                                    .format(
                                          $.trim(request.term)
                                                 .replace(/ /g, ' ')
                                 ),
@@ -426,7 +447,8 @@ button.selected {
                         
                   }).keyup(
                         function(event, ui) {
-                            if (event.keyCode === 13 && $('.ui-menu').is(':visible')) {
+                            if (event.keyCode === 13 && $('.ui-menu')
+                                .is(':visible')) {
                                search($($('.ui-menu-item')[0]).text());
                                $(this).autocomplete("close");
                             }
@@ -451,46 +473,57 @@ button.selected {
                         }
                     );
       }
-      
-          function getSpeciesList(gmba_id, name, group) {
-            var list_sql = "" +
-                "SELECT " +
-                    "binomial, " +
-                    "split_part(t.common_names_eng,',',1) as common " +
-                "FROM " +
-                    "(SELECT " +
-                        "DISTINCT binomial " +
-                    "FROM "+
-                        "iucn_{0} i, {1} p " +
-                    "WHERE " +
-                        "p.gmba_id = '{2}' " +
-                        "AND " +
-                        "ST_DWithin(" +
-                            "p.the_geom_webmercator,i.the_geom_webmercator,0)" +
-                    ") s " +
-                "LEFT JOIN " +
-                    "taxonomy t ON s.binomial = t.scientificname "
-                "ORDER BY binomial asc";
-            
+      function clearList() {
+          $('.cartodb-tiles-loader').css("opacity",0);
+          $('.list_results').empty().hide();
+      }
+      function getSpeciesList(gmba_id, name, group) {
+          var list_sql = "" +
+             "SELECT " +
+                 "binomial, " +
+                 "split_part(t.common_names_eng,',',1) as common " +
+             "FROM " +
+                 "(SELECT " +
+                     "DISTINCT binomial " +
+                 "FROM "+
+                     "iucn_{0} i, {1} p " +
+                 "WHERE " +
+                     "p.gmba_id = '{2}' " +
+                     "AND " +
+                     "ST_DWithin(" +
+                         "p.the_geom_webmercator,i.the_geom_webmercator,0)" +
+                 ") s " +
+             "LEFT JOIN " +
+                 "taxonomy t ON s.binomial = t.scientificname "
+             "ORDER BY binomial asc";
+        
             $('.list_results').empty();
             $('.list_results').show();
             $('.list_results').append(
-                $('<div>Please wait while we search for {0} in the {1} region.</div>'.format(group,name))
+                $('<div>Please wait while we search for {0} in the {1} region.</div>'
+                    .format(group,name))
             );
-           $('.cartodb-tiles-loader').css("opacity",1)
+            $('.cartodb-tiles-loader').css("opacity",1)
             try {
                 $.getJSON(
-                    'http://d3dvrpov25vfw0.cloudfront.net/api/v2/sql?q={0}'.format(
-                        list_sql.format(
-                             group,
-                             $('button.selected').data('table'),
-                            gmba_id)),
+                    'http://d3dvrpov25vfw0.cloudfront.net/api/v2/sql?q={0}'
+                        .format(
+                            list_sql.format(
+                                group,
+                                $('button.selected').data('table'),
+                                gmba_id)
+                    ),
                     function(json) {
+                        var species_html = '' +
+                            '<div class="list_header">' +
+                                '{0} {1} expected in the {2} region.' +
+                            '</div>';
                         $('.cartodb-tiles-loader').css("opacity",0)
                         $('.list_results').empty();
-                         $('.list_results').append(
-                            $('<div class="list_header">{0} {1} expected in the {2} region.</div>'
-                                .format(json.total_rows, group, name))
+                        $('.list_results').append(
+                            $(species_html
+                                .format(json.total_rows, group, name)
+                             )
                          );
                         _.each(
                             json.rows,
@@ -510,67 +543,69 @@ button.selected {
                         )
                     }
                 )
-            } catch(e)
-            
-                {   $('.cartodb-tiles-loader').css("opacity",1);
-                     $('.list_results').empty();
-                      $('.list_results').hide();
-                    console.log("Couldn't get a list. Sorry!")}                
+            } catch(e) {
+                clearList();
+                console.log("Couldn't get a list. Sorry!")
+            }
         }
-  
-      function main() {
-        //map = new google.maps.Map(document.getElementById('map'),  mapOptions);
-        cartodb.createVis(
-            'map',
-            'http://d3dvrpov25vfw0.cloudfront.net/api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json',
-            {cartodb_logo:false, query: 'SELECT *, false as selected FROM mountain_polygons_broadscale c123 '}
-        ).done(
-            function(viz,layer) {
-                var logo = $('<DIV id="logo">by Map of Life, 2013</div>');
-                $(logo).click(
-                    function() {
-                        window.open('http://www.mappinglife.org','_mol');
-                    }
-                );
-                vis = viz;
-                lay = layer;
-                map = vis.getNativeMap();
-                map.setOptions(
-                    {mapTypeId: google.maps.MapTypeId.TERRAIN}
-                );
-                createSelector();
-                
-                map.controls[google.maps.ControlPosition.TOP_RIGHT].push(logo[0]);
-                $('.cartodb-logo').remove();
-                $('#cartodb-gmaps-attribution').remove();
-         
-                initAutocomplete();
-            }
-        );
-            //init autocomplete
-        $(document).keyup(function(e) {
-            var thelayer;
-            if (e.keyCode == 27) { // Esc
-                if(lay.length != undefined) {
-                    thelayer=lay[lay.length-1] // or whatever you want
-                } else {
-                    thelayer=lay
-                
+        function main() {
+            cartodb.createVis(
+                'map',
+                'http://d3dvrpov25vfw0.cloudfront.net/' +
+                    'api/v2/viz/288dec38-4320-11e3-913e-6805ca06688a/viz.json',
+                {
+                    cartodb_logo:false, 
+                    query: '' +
+                        'SELECT *, false as selected ' +
+                        'FROM mountain_polygons_broadscale c123 '
                 }
-                thelayer.setQuery('SELECT *, false as selected FROM {0} c2234'.format($('button.selected').data('table')));
-            }
-        });
-        
-        $('.searchbox .submit').click(
-            function(event) {
-                search($('.searchbox .text').val());
-            }
-        )
-    }
-        
-      window.onload = main;
-
+            ).done(
+                function(viz,layer) {
+                    var logo = $('<DIV id="logo">by Map of Life, 2013</div>');
+                    $(logo).click(
+                        function() {
+                            window.open('http://www.mappinglife.org','_mol');
+                        }
+                    );
+                    vis = viz;
+                    lay = layer;
+                    map = vis.getNativeMap();
+                    map.setOptions(
+                        {mapTypeId: google.maps.MapTypeId.TERRAIN}
+                    );
+                    createSelector();
+                
+                    map.controls[google.maps.ControlPosition.TOP_RIGHT]
+                        .push(logo[0]);
+                    $('.cartodb-logo').remove();
+                    $('#cartodb-gmaps-attribution').remove();
+         
+                    initAutocomplete();
+                }
+            );
+            //init autocomplete
+            $(document).keyup(
+                function(e) {
+                    var thelayer;
+                    if (e.keyCode == 27) { // Esc
+                        if(lay.length != undefined) {
+                            thelayer=lay[lay.length-1] // or whatever you want
+                        } else {
+                            thelayer=lay
+                        }
+                        thelayer.setQuery(
+                            'SELECT *, false as selected FROM {0} c2234'
+                                .format($('button.selected').data('table')));
+                    }
+                }
+            );
+            $('.searchbox .submit').click(
+                function(event) {
+                    search($('.searchbox .text').val());
+                }
+            );
+        }
+        window.onload = main;
     </script>
-
-  </body>
+</body>
 </html>
